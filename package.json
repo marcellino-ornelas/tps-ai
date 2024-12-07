@@ -1,0 +1,16 @@
+{
+  "name": "ai",
+  "version": "1.0.0",
+  "description": "",
+  "main": "settings.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "openai": "^4.76.0",
+    "templates-mo": "^1.2.8",
+    "zod": "^3.23.8"
+  }
+}
