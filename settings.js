@@ -41,7 +41,7 @@ module.exports = {
       type: "input",
     },
     {
-      name: "llm",
+      name: "provider",
       description: "Type of llm you want to use",
       tpsType: "data",
       type: "list",
@@ -55,8 +55,8 @@ module.exports = {
       tpsType: "data",
       type: "input",
       message: "What type of llm model do you want to use?",
-      default: ({ llm }) => {
-        switch (llm) {
+      default: ({ provider }) => {
+        switch (provider) {
           case "openai":
             return "gpt-4o-mini";
           default:
@@ -78,7 +78,7 @@ module.exports = {
       const answers = tps.getAnswers();
 
       const fileSystem = await getTemplateFromLLM(
-        answers.llm,
+        answers.provider,
         answers.model,
         answers.token,
         answers.build
@@ -107,7 +107,7 @@ module.exports = {
 const getTemplateFromLLM = async (provider, model, token, inputPrompt) => {
   const openai = new OpenAI({ apiKey: token });
 
-  console.log("Generating llm response...");
+  console.log("Hold tight, AI is thinking...");
 
   switch (provider) {
     case "openai":
@@ -173,7 +173,7 @@ const getTemplateFromLLM = async (provider, model, token, inputPrompt) => {
  * @param {FileSystem} fileSystem
  */
 const generateFileContent = async (dest, fileSystem, force = false) => {
-  console.log("Generating file content...");
+  console.log("Got it! Generating code...");
   for (const fileOrDir of fileSystem.fileContents) {
     const filePath = path.join(dest, fileOrDir.path);
     if (fileOrDir.type === "directory") {
