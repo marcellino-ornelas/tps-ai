@@ -46,8 +46,16 @@ module.exports = {
       tpsType: "data",
       type: "list",
       message: "What type of llm do you want to use?",
-      choices: ["openai", "anthropic", "huggingface"],
+      choices: ["openai" /*, "anthropic", "huggingface" */],
       default: "openai",
+    },
+    {
+      name: "model",
+      description: "Type of llm model you want to use",
+      tpsType: "data",
+      type: "input",
+      message: "What type of llm model do you want to use?",
+      default: "gpt-4o-mini",
     },
     {
       name: "token",
@@ -64,8 +72,9 @@ module.exports = {
 
       const fileSystem = await getTemplateFromLLM(
         answers.llm,
-        answers.build,
-        answers.token
+        answers.model,
+        answers.token,
+        answers.build
       );
 
       if (!fileSystem) {
@@ -88,15 +97,15 @@ module.exports = {
 /**
  * @returns {Promise<FileSystem | null>}
  */
-const getTemplateFromLLM = async (apiType, inputPrompt, token) => {
+const getTemplateFromLLM = async (provider, model, token, inputPrompt) => {
   const openai = new OpenAI({ apiKey: token });
 
   console.log("Generating llm response...");
 
-  switch (apiType) {
+  switch (provider) {
     case "openai":
       const completion = await openai.beta.chat.completions.parse({
-        model: "gpt-4o",
+        model,
         messages: [
           {
             role: "system",
@@ -149,7 +158,7 @@ const getTemplateFromLLM = async (apiType, inputPrompt, token) => {
     // 	return (await response.json())[0].generated_text;
 
     default:
-      throw new Error("Unsupported API type");
+      throw new Error("Unsupported llm provider");
   }
 };
 
