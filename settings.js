@@ -55,7 +55,14 @@ module.exports = {
       tpsType: "data",
       type: "input",
       message: "What type of llm model do you want to use?",
-      default: "gpt-4o-mini",
+      default: ({ llm }) => {
+        switch (llm) {
+          case "openai":
+            return "gpt-4o-mini";
+          default:
+            throw new Error("Unsupported llm provider");
+        }
+      },
     },
     {
       name: "token",
