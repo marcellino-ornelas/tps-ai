@@ -41,13 +41,28 @@ module.exports = {
       type: "input",
     },
     {
-      name: "llm",
+      name: "provider",
       description: "Type of llm you want to use",
       tpsType: "data",
       type: "list",
       message: "What type of llm do you want to use?",
-      choices: ["openai", "anthropic", "huggingface"],
+      choices: ["openai" /*, "anthropic", "huggingface" */],
       default: "openai",
+    },
+    {
+      name: "model",
+      description: "Type of llm model you want to use",
+      tpsType: "data",
+      type: "input",
+      message: "What type of llm model do you want to use?",
+      default: ({ provider }) => {
+        switch (provider) {
+          case "openai":
+            return "gpt-4o-mini";
+          default:
+            throw new Error("Unsupported llm provider");
+        }
+      },
     },
     {
       name: "token",
@@ -59,20 +74,25 @@ module.exports = {
     },
   ],
   events: {
-    async onRender(tps, { dest, buildPaths }) {
+    async onRender(tps, { buildPaths }) {
       const answers = tps.getAnswers();
 
+      console.log("Hold tight, AI is thinking...");
+
       const fileSystem = await getTemplateFromLLM(
-        answers.llm,
-        answers.build,
-        answers.token
+        answers.provider,
+        answers.model,
+        answers.token,
+        answers.build
       );
 
       if (!fileSystem) {
         throw new Error("LLM didnt return a valid response");
       }
 
-      return Promise.all(
+      console.log("Got it! Generating code...");
+
+      await Promise.all(
         buildPaths.map((buildPath) => {
           return generateFileContent(
             buildPath,
@@ -81,6 +101,8 @@ module.exports = {
           );
         })
       );
+
+      console.log("Done!");
     },
   },
 };
@@ -88,15 +110,13 @@ module.exports = {
 /**
  * @returns {Promise<FileSystem | null>}
  */
-const getTemplateFromLLM = async (apiType, inputPrompt, token) => {
+const getTemplateFromLLM = async (provider, model, token, inputPrompt) => {
   const openai = new OpenAI({ apiKey: token });
 
-  console.log("Generating llm response...");
-
-  switch (apiType) {
+  switch (provider) {
     case "openai":
       const completion = await openai.beta.chat.completions.parse({
-        model: "gpt-4o",
+        model,
         messages: [
           {
             role: "system",
@@ -149,7 +169,7 @@ const getTemplateFromLLM = async (apiType, inputPrompt, token) => {
     // 	return (await response.json())[0].generated_text;
 
     default:
-      throw new Error("Unsupported API type");
+      throw new Error("Unsupported llm provider");
   }
 };
 
@@ -157,7 +177,6 @@ const getTemplateFromLLM = async (apiType, inputPrompt, token) => {
  * @param {FileSystem} fileSystem
  */
 const generateFileContent = async (dest, fileSystem, force = false) => {
-  console.log("Generating file content...");
   for (const fileOrDir of fileSystem.fileContents) {
     const filePath = path.join(dest, fileOrDir.path);
     if (fileOrDir.type === "directory") {
