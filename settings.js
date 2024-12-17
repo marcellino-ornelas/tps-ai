@@ -74,7 +74,7 @@ module.exports = {
     },
   ],
   events: {
-    async onRender(tps, { dest, buildPaths }) {
+    async onRender(tps, { buildPaths }) {
       const answers = tps.getAnswers();
 
       console.log("Hold tight, AI is thinking...");
