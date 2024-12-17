@@ -88,7 +88,9 @@ module.exports = {
         throw new Error("LLM didnt return a valid response");
       }
 
-      return Promise.all(
+      console.log("Got it! Generating code...");
+
+      await Promise.all(
         buildPaths.map((buildPath) => {
           return generateFileContent(
             buildPath,
@@ -97,6 +99,8 @@ module.exports = {
           );
         })
       );
+
+      console.log("Done!");
     },
   },
 };
@@ -173,7 +177,6 @@ const getTemplateFromLLM = async (provider, model, token, inputPrompt) => {
  * @param {FileSystem} fileSystem
  */
 const generateFileContent = async (dest, fileSystem, force = false) => {
-  console.log("Got it! Generating code...");
   for (const fileOrDir of fileSystem.fileContents) {
     const filePath = path.join(dest, fileOrDir.path);
     if (fileOrDir.type === "directory") {
