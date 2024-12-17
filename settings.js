@@ -77,6 +77,8 @@ module.exports = {
     async onRender(tps, { dest, buildPaths }) {
       const answers = tps.getAnswers();
 
+      console.log("Hold tight, AI is thinking...");
+
       const fileSystem = await getTemplateFromLLM(
         answers.provider,
         answers.model,
@@ -110,8 +112,6 @@ module.exports = {
  */
 const getTemplateFromLLM = async (provider, model, token, inputPrompt) => {
   const openai = new OpenAI({ apiKey: token });
-
-  console.log("Hold tight, AI is thinking...");
 
   switch (provider) {
     case "openai":
