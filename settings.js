@@ -8,6 +8,7 @@ const { createAnthropic } = require("@ai-sdk/anthropic");
 const { createAzure } = require("@ai-sdk/azure");
 const { createGoogleGenerativeAI } = require("@ai-sdk/google");
 const { createAmazonBedrock } = require("@ai-sdk/amazon-bedrock");
+const { createDeepSeek } = require("@ai-sdk/deepseek");
 
 const FileSystemObjectSchema = z
   .object({
@@ -49,7 +50,14 @@ module.exports = {
       tpsType: "data",
       type: "list",
       message: "What type of llm do you want to use?",
-      choices: ["openai", "anthropic", "azure", "google", "amazon-bedrock"],
+      choices: [
+        "openai",
+        "anthropic",
+        "azure",
+        "google",
+        "amazon-bedrock",
+        "deepseek",
+      ],
       default: "openai",
     },
     {
@@ -130,6 +138,7 @@ const getLanguageModel = (token, provider, model) => {
   const commonOpts = {
     apiKey: token,
   };
+
   switch (provider) {
     case "openai":
       return createOpenAI({
@@ -159,8 +168,12 @@ const getLanguageModel = (token, provider, model) => {
         );
       }
       return createAmazonBedrock()(model);
+    case "deepseek":
+      return createDeepSeek({
+        ...commonOpts,
+      })(model);
     default:
-      throw new Error("Unsupported llm provider");
+      throw new Error(`Unsupported llm provider: ${provider}`);
   }
 };
 
@@ -208,6 +221,7 @@ const envMapping = {
   anthropic: "ANTHROPIC_API_KEY",
   azure: "AZURE_API_KEY",
   google: "GOOGLE_GENERATIVE_AI_API_KEY",
+  deepseek: "DEEPSEEK_API_KEY",
 };
 
 const getEnvVar = (provider) => {
