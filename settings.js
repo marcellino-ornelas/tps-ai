@@ -6,6 +6,7 @@ const { generateObject } = require("ai");
 const { createOpenAI } = require("@ai-sdk/openai");
 const { createAnthropic } = require("@ai-sdk/anthropic");
 const { createAzure } = require("@ai-sdk/azure");
+const { createGoogleGenerativeAI } = require("@ai-sdk/google");
 
 const FileSystemObjectSchema = z
   .object({
@@ -47,7 +48,7 @@ module.exports = {
       tpsType: "data",
       type: "list",
       message: "What type of llm do you want to use?",
-      choices: ["openai", "anthropic", "azure"],
+      choices: ["openai", "anthropic", "azure", "google"],
       default: "openai",
     },
     {
@@ -122,18 +123,25 @@ module.exports = {
 };
 
 const getLanguageModel = (token, provider, model) => {
+  const commonOpts = {
+    apiKey: token,
+  };
   switch (provider) {
     case "openai":
       return createOpenAI({
-        apiKey: token,
+        ...commonOpts,
       })(model);
     case "anthropic":
       return createAnthropic({
-        apiKey: token,
+        ...commonOpts,
       })(model);
     case "azure":
       return createAzure({
-        apiKey: token,
+        ...commonOpts,
+      })(model);
+    case "google":
+      return createGoogleGenerativeAI({
+        ...commonOpts,
       })(model);
     // throw new Error("Anthropic not supported yet");
     default:
@@ -184,6 +192,7 @@ const envMapping = {
   openai: "OPENAI_API_KEY",
   anthropic: "ANTHROPIC_API_KEY",
   azure: "AZURE_API_KEY",
+  google: "GOOGLE_GENERATIVE_AI_API_KEY",
 };
 
 const getEnvVar = (provider) => {
