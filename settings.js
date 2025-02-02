@@ -70,6 +70,16 @@ module.exports = {
         switch (provider) {
           case "openai":
             return "gpt-4o-mini";
+          case "anthropic":
+            return "claude-3-haiku-20240307";
+          case "azure":
+            return null;
+          case "google":
+            return "chat-bison";
+          case "amazon-bedrock":
+            return "meta.llama3-70b-instruct-v1:0";
+          case "deepseek":
+            return "deepseek-chat";
           default:
             throw new Error("Unsupported llm provider");
         }

@@ -16,7 +16,7 @@
     "@ai-sdk/google": "^1.1.8",
     "@ai-sdk/openai": "^1.1.9",
     "ai": "^4.1.16",
-    "templates-mo": "^1.2.8",
+    "templates-mo": "^1.2.11",
     "zod": "^3.23.8"
   }
 }
