@@ -7,6 +7,7 @@ const { createOpenAI } = require("@ai-sdk/openai");
 const { createAnthropic } = require("@ai-sdk/anthropic");
 const { createAzure } = require("@ai-sdk/azure");
 const { createGoogleGenerativeAI } = require("@ai-sdk/google");
+const { createAmazonBedrock } = require("@ai-sdk/amazon-bedrock");
 
 const FileSystemObjectSchema = z
   .object({
@@ -48,7 +49,7 @@ module.exports = {
       tpsType: "data",
       type: "list",
       message: "What type of llm do you want to use?",
-      choices: ["openai", "anthropic", "azure", "google"],
+      choices: ["openai", "anthropic", "azure", "google", "amazon-bedrock"],
       default: "openai",
     },
     {
@@ -73,10 +74,12 @@ module.exports = {
       type: "input",
       message: "Enter your api token for the llm",
       when: ({ provider }) => {
+        // amazon provider only supports env varibles
+        if (provider === "amazon-bedrock") return false;
         return !getEnvVar(provider);
       },
       default: ({ provider }) => {
-        return getEnvVar(provider) ?? undefined;
+        return getEnvVar(provider) ?? null;
       },
     },
   ],
@@ -84,7 +87,8 @@ module.exports = {
     async onRender(tps, { buildPaths }) {
       const answers = tps.getAnswers();
 
-      if (!answers.token) {
+      // amazon-bedrock requires creds via env variables
+      if (!answers.token && answers.provider !== "amazon-bedrock") {
         throw new Error("API token required!");
       }
 
@@ -143,7 +147,18 @@ const getLanguageModel = (token, provider, model) => {
       return createGoogleGenerativeAI({
         ...commonOpts,
       })(model);
-    // throw new Error("Anthropic not supported yet");
+    case "amazon-bedrock":
+      if (
+        !process.env.AWS_REGION ||
+        !process.env.AWS_ACCESS_KEY_ID ||
+        !process.env.AWS_SECRET_ACCESS_KEY ||
+        !!process.env.AWS_SESSION_TOKEN
+      ) {
+        throw new Error(
+          "amazon-bedrock provider only supports providing credentials through enviroment varibles. Please provide all env varibles (AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN)"
+        );
+      }
+      return createAmazonBedrock()(model);
     default:
       throw new Error("Unsupported llm provider");
   }
