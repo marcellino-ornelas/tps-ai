@@ -9,6 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@ai-sdk/openai": "^1.1.9",
+    "ai": "^4.1.16",
     "openai": "^4.76.0",
     "templates-mo": "^1.2.8",
     "zod": "^3.23.8"

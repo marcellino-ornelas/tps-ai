@@ -5,6 +5,8 @@ const { zodResponseFormat } = require("openai/helpers/zod");
 const z = require("zod");
 const fs = require("fs/promises");
 const path = require("path");
+const { generateObject } = require("ai");
+const { createOpenAI } = require("@ai-sdk/openai");
 
 const FileSystemObjectSchema = z
   .object({
@@ -77,6 +79,14 @@ module.exports = {
     async onRender(tps, { buildPaths }) {
       const answers = tps.getAnswers();
 
+      if (!answers.token) {
+        throw new Error("API token required!");
+      }
+
+      if (!answers.provider) {
+        throw new Error("LLM provider required!");
+      }
+
       console.log("Hold tight, AI is thinking...");
 
       const fileSystem = await getTemplateFromLLM(
@@ -111,66 +121,35 @@ module.exports = {
  * @returns {Promise<FileSystem | null>}
  */
 const getTemplateFromLLM = async (provider, model, token, inputPrompt) => {
-  const openai = new OpenAI({ apiKey: token });
+  const languageModel = (() => {
+    switch (provider) {
+      case "openai":
+        const openai = createOpenAI({
+          apiKey: token,
+        });
 
-  switch (provider) {
-    case "openai":
-      const completion = await openai.beta.chat.completions.parse({
-        model,
-        messages: [
-          {
-            role: "system",
-            content: `\
-				you are being used to generate code. Return a 1 dimension json 
-				array of objects in json format. Each object will have a "path" 
-				property holding a relative path to code you are generating files 
-				or directory which must start with "./",  a "type" property to determine 
-				if the object represents a "directory" or "file",  a "content" property for the 
-				content of the file but only on file objects. You only need to generate directory 
-				objects for directories that dont have corresponding child files/directories that are 
-				in the same array.`,
-          },
-          {
-            role: "user",
-            content: inputPrompt,
-          },
-        ],
-        response_format: zodResponseFormat(FileSystemSchema, "file_system"),
-      });
+        return openai(model);
+      default:
+        throw new Error("Unsupported llm provider");
+    }
+  })();
 
-      return completion.choices[0].message.parsed;
+  const { object } = await generateObject({
+    model: languageModel,
+    schema: FileSystemSchema,
+    system: `\
+      you are being used to generate code. Return a 1 dimension json 
+      array of objects in json format. Each object will have a "path" 
+      property holding a relative path to code you are generating files 
+      or directory which must start with "./",  a "type" property to determine 
+      if the object represents a "directory" or "file",  a "content" property for the 
+      content of the file but only on file objects. You only need to generate directory 
+      objects for directories that dont have corresponding child files/directories that are 
+      in the same array.`,
+    prompt: inputPrompt,
+  });
 
-    // case "anthropic":
-    //   response = await fetch("https://api.anthropic.com/v1/complete", {
-    //     method: "POST",
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //       Authorization: `Bearer ${token}`,
-    //     },
-    //     body: JSON.stringify({
-    //       model: "claude-v1",
-    //       prompt: inputPrompt,
-    //       max_tokens: 300,
-    //     }),
-    //   });
-    //   return (await response.json()).completion;
-
-    // case 'huggingface':
-    // 	response = await fetch(
-    // 		'https://api-inference.huggingface.co/models/YOUR_MODEL',
-    // 		{
-    // 			method: 'POST',
-    // 			headers: {
-    // 				Authorization: `Bearer ${token}`,
-    // 			},
-    // 			body: JSON.stringify({ inputs: inputPrompt }),
-    // 		},
-    // 	);
-    // 	return (await response.json())[0].generated_text;
-
-    default:
-      throw new Error("Unsupported llm provider");
-  }
+  return object;
 };
 
 /**
