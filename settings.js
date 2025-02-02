@@ -5,6 +5,7 @@ const path = require("path");
 const { generateObject } = require("ai");
 const { createOpenAI } = require("@ai-sdk/openai");
 const { createAnthropic } = require("@ai-sdk/anthropic");
+const { createAzure } = require("@ai-sdk/azure");
 
 const FileSystemObjectSchema = z
   .object({
@@ -46,7 +47,7 @@ module.exports = {
       tpsType: "data",
       type: "list",
       message: "What type of llm do you want to use?",
-      choices: ["openai" /*, "anthropic", "huggingface" */],
+      choices: ["openai", "anthropic", "azure"],
       default: "openai",
     },
     {
@@ -130,6 +131,10 @@ const getLanguageModel = (token, provider, model) => {
       return createAnthropic({
         apiKey: token,
       })(model);
+    case "azure":
+      return createAzure({
+        apiKey: token,
+      })(model);
     // throw new Error("Anthropic not supported yet");
     default:
       throw new Error("Unsupported llm provider");
@@ -178,6 +183,7 @@ const generateFileContent = async (dest, fileSystem, force = false) => {
 const envMapping = {
   openai: "OPENAI_API_KEY",
   anthropic: "ANTHROPIC_API_KEY",
+  azure: "AZURE_API_KEY",
 };
 
 const getEnvVar = (provider) => {
