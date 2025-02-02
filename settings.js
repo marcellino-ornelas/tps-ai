@@ -1,12 +1,10 @@
 // @ts-check
-
-const { OpenAI } = require("openai");
-const { zodResponseFormat } = require("openai/helpers/zod");
 const z = require("zod");
 const fs = require("fs/promises");
 const path = require("path");
 const { generateObject } = require("ai");
 const { createOpenAI } = require("@ai-sdk/openai");
+const { createAnthropic } = require("@ai-sdk/anthropic");
 
 const FileSystemObjectSchema = z
   .object({
@@ -72,7 +70,12 @@ module.exports = {
       tpsType: "data",
       type: "input",
       message: "Enter your api token for the llm",
-      default: null,
+      when: ({ provider }) => {
+        return !getEnvVar(provider);
+      },
+      default: ({ provider }) => {
+        return getEnvVar(provider) ?? undefined;
+      },
     },
   ],
   events: {
@@ -117,25 +120,28 @@ module.exports = {
   },
 };
 
+const getLanguageModel = (token, provider, model) => {
+  switch (provider) {
+    case "openai":
+      return createOpenAI({
+        apiKey: token,
+      })(model);
+    case "anthropic":
+      return createAnthropic({
+        apiKey: token,
+      })(model);
+    // throw new Error("Anthropic not supported yet");
+    default:
+      throw new Error("Unsupported llm provider");
+  }
+};
+
 /**
  * @returns {Promise<FileSystem | null>}
  */
 const getTemplateFromLLM = async (provider, model, token, inputPrompt) => {
-  const languageModel = (() => {
-    switch (provider) {
-      case "openai":
-        const openai = createOpenAI({
-          apiKey: token,
-        });
-
-        return openai(model);
-      default:
-        throw new Error("Unsupported llm provider");
-    }
-  })();
-
   const { object } = await generateObject({
-    model: languageModel,
+    model: getLanguageModel(token, provider, model),
     schema: FileSystemSchema,
     system: `\
       you are being used to generate code. Return a 1 dimension json 
@@ -167,4 +173,14 @@ const generateFileContent = async (dest, fileSystem, force = false) => {
       });
     }
   }
+};
+
+const envMapping = {
+  openai: "OPENAI_API_KEY",
+  anthropic: "ANTHROPIC_API_KEY",
+};
+
+const getEnvVar = (provider) => {
+  const envVar = envMapping[provider];
+  return process.env[envVar] ?? null;
 };
