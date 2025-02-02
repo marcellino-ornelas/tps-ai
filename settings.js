@@ -39,7 +39,7 @@ module.exports = {
   prompts: [
     {
       name: "build",
-      description: "Description of what you want to intruct the llm to build",
+      description: "Description of what you want to instruct the llm to build",
       message: "What would you like to build?",
       tpsType: "data",
       type: "input",
