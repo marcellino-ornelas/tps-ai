@@ -100,6 +100,14 @@ module.exports = {
         return getEnvVar(provider) ?? null;
       },
     },
+    {
+      name: "baseUrl",
+      description: "Change the baseUrl for your AI provider",
+      tpsType: "data",
+      type: "input",
+      message: "Would you like to change the baseUrl for your AI provider?",
+      default: "",
+    },
   ],
   events: {
     async onRender(tps, { buildPaths }) {
@@ -120,7 +128,8 @@ module.exports = {
         answers.provider,
         answers.model,
         answers.token,
-        answers.build
+        answers.build,
+        answers.baseUrl
       );
 
       if (!fileSystem) {
@@ -144,8 +153,9 @@ module.exports = {
   },
 };
 
-const getLanguageModel = (token, provider, model) => {
+const getLanguageModel = (token, provider, model, baseUrl) => {
   const commonOpts = {
+    baseUrl,
     apiKey: token,
   };
 
@@ -170,8 +180,7 @@ const getLanguageModel = (token, provider, model) => {
       if (
         !process.env.AWS_REGION ||
         !process.env.AWS_ACCESS_KEY_ID ||
-        !process.env.AWS_SECRET_ACCESS_KEY ||
-        !!process.env.AWS_SESSION_TOKEN
+        !process.env.AWS_SECRET_ACCESS_KEY
       ) {
         throw new Error(
           "amazon-bedrock provider only supports providing credentials through enviroment varibles. Please provide all env varibles (AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN)"
@@ -190,9 +199,15 @@ const getLanguageModel = (token, provider, model) => {
 /**
  * @returns {Promise<FileSystem | null>}
  */
-const getTemplateFromLLM = async (provider, model, token, inputPrompt) => {
+const getTemplateFromLLM = async (
+  provider,
+  model,
+  token,
+  inputPrompt,
+  baseUrl
+) => {
   const { object } = await generateObject({
-    model: getLanguageModel(token, provider, model),
+    model: getLanguageModel(token, provider, model, baseUrl),
     schema: FileSystemSchema,
     system: `\
       you are being used to generate code. Return a 1 dimension json 
