@@ -233,8 +233,8 @@ const defaultModels = {
   openai: "gpt-4o-mini",
   anthropic: "claude-3-haiku-20240307",
   azure: null,
-  google: "chat-bison",
-  "amazon-bedrock": "meta.llama3-70b-instruct-v1:0",
+  google: "gemini-1.5-pro-latest",
+  "amazon-bedrock": "anthropic.claude-3-5-sonnet-20241022-v2:0",
   deepseek: "deepseek-chat",
 };
 
