@@ -67,29 +67,14 @@ module.exports = {
       type: "input",
       message: "What type of llm model do you want to use?",
       default: ({ provider }) => {
-        switch (provider) {
-          case "openai":
-            return "gpt-4o-mini";
-          case "anthropic":
-            return "claude-3-haiku-20240307";
-          case "azure":
-            return null;
-          case "google":
-            return "chat-bison";
-          case "amazon-bedrock":
-            return "meta.llama3-70b-instruct-v1:0";
-          case "deepseek":
-            return "deepseek-chat";
-          default:
-            throw new Error("Unsupported llm provider");
-        }
+        return defaultModels[provider];
       },
     },
     {
       name: "token",
       description: "Api token for llm Api",
       tpsType: "data",
-      type: "input",
+      type: "password",
       message: "Enter your api token for the llm",
       when: ({ provider }) => {
         // amazon provider only supports env varibles
@@ -102,11 +87,11 @@ module.exports = {
     },
     {
       name: "baseUrl",
+      hidden: true,
       description: "Change the baseUrl for your AI provider",
       tpsType: "data",
       type: "input",
       message: "Would you like to change the baseUrl for your AI provider?",
-      default: "",
     },
   ],
   events: {
@@ -155,7 +140,7 @@ module.exports = {
 
 const getLanguageModel = (token, provider, model, baseUrl) => {
   const commonOpts = {
-    baseUrl,
+    baseURL: baseUrl,
     apiKey: token,
   };
 
@@ -239,6 +224,18 @@ const generateFileContent = async (dest, fileSystem, force = false) => {
       });
     }
   }
+};
+
+/**
+ * Default models for each provider
+ */
+const defaultModels = {
+  openai: "gpt-4o-mini",
+  anthropic: "claude-3-haiku-20240307",
+  azure: null,
+  google: "chat-bison",
+  "amazon-bedrock": "meta.llama3-70b-instruct-v1:0",
+  deepseek: "deepseek-chat",
 };
 
 const envMapping = {
