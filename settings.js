@@ -1,10 +1,14 @@
 // @ts-check
-
-const { OpenAI } = require("openai");
-const { zodResponseFormat } = require("openai/helpers/zod");
 const z = require("zod");
 const fs = require("fs/promises");
 const path = require("path");
+const { generateObject } = require("ai");
+const { createOpenAI } = require("@ai-sdk/openai");
+const { createAnthropic } = require("@ai-sdk/anthropic");
+const { createAzure } = require("@ai-sdk/azure");
+const { createGoogleGenerativeAI } = require("@ai-sdk/google");
+const { createAmazonBedrock } = require("@ai-sdk/amazon-bedrock");
+const { createDeepSeek } = require("@ai-sdk/deepseek");
 
 const FileSystemObjectSchema = z
   .object({
@@ -35,7 +39,7 @@ module.exports = {
   prompts: [
     {
       name: "build",
-      description: "Description of what you want to intruct the llm to build",
+      description: "Description of what you want to instruct the llm to build",
       message: "What would you like to build?",
       tpsType: "data",
       type: "input",
@@ -46,7 +50,14 @@ module.exports = {
       tpsType: "data",
       type: "list",
       message: "What type of llm do you want to use?",
-      choices: ["openai" /*, "anthropic", "huggingface" */],
+      choices: [
+        "openai",
+        "anthropic",
+        "azure",
+        "google",
+        "amazon-bedrock",
+        "deepseek",
+      ],
       default: "openai",
     },
     {
@@ -56,26 +67,45 @@ module.exports = {
       type: "input",
       message: "What type of llm model do you want to use?",
       default: ({ provider }) => {
-        switch (provider) {
-          case "openai":
-            return "gpt-4o-mini";
-          default:
-            throw new Error("Unsupported llm provider");
-        }
+        return defaultModels[provider];
       },
     },
     {
       name: "token",
       description: "Api token for llm Api",
       tpsType: "data",
-      type: "input",
+      type: "password",
       message: "Enter your api token for the llm",
-      default: null,
+      when: ({ provider }) => {
+        // amazon provider only supports env varibles
+        if (provider === "amazon-bedrock") return false;
+        return !getEnvVar(provider);
+      },
+      default: ({ provider }) => {
+        return getEnvVar(provider) ?? null;
+      },
+    },
+    {
+      name: "baseUrl",
+      hidden: true,
+      description: "Change the baseUrl for your AI provider",
+      tpsType: "data",
+      type: "input",
+      message: "Would you like to change the baseUrl for your AI provider?",
     },
   ],
   events: {
     async onRender(tps, { buildPaths }) {
       const answers = tps.getAnswers();
+
+      // amazon-bedrock requires creds via env variables
+      if (!answers.token && answers.provider !== "amazon-bedrock") {
+        throw new Error("API token required!");
+      }
+
+      if (!answers.provider) {
+        throw new Error("LLM provider required!");
+      }
 
       console.log("Hold tight, AI is thinking...");
 
@@ -83,7 +113,8 @@ module.exports = {
         answers.provider,
         answers.model,
         answers.token,
-        answers.build
+        answers.build,
+        answers.baseUrl
       );
 
       if (!fileSystem) {
@@ -107,70 +138,75 @@ module.exports = {
   },
 };
 
-/**
- * @returns {Promise<FileSystem | null>}
- */
-const getTemplateFromLLM = async (provider, model, token, inputPrompt) => {
-  const openai = new OpenAI({ apiKey: token });
+const getLanguageModel = (token, provider, model, baseUrl) => {
+  const commonOpts = {
+    baseURL: baseUrl,
+    apiKey: token,
+  };
 
   switch (provider) {
     case "openai":
-      const completion = await openai.beta.chat.completions.parse({
-        model,
-        messages: [
-          {
-            role: "system",
-            content: `\
-				you are being used to generate code. Return a 1 dimension json 
-				array of objects in json format. Each object will have a "path" 
-				property holding a relative path to code you are generating files 
-				or directory which must start with "./",  a "type" property to determine 
-				if the object represents a "directory" or "file",  a "content" property for the 
-				content of the file but only on file objects. You only need to generate directory 
-				objects for directories that dont have corresponding child files/directories that are 
-				in the same array.`,
-          },
-          {
-            role: "user",
-            content: inputPrompt,
-          },
-        ],
-        response_format: zodResponseFormat(FileSystemSchema, "file_system"),
-      });
-
-      return completion.choices[0].message.parsed;
-
-    // case "anthropic":
-    //   response = await fetch("https://api.anthropic.com/v1/complete", {
-    //     method: "POST",
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //       Authorization: `Bearer ${token}`,
-    //     },
-    //     body: JSON.stringify({
-    //       model: "claude-v1",
-    //       prompt: inputPrompt,
-    //       max_tokens: 300,
-    //     }),
-    //   });
-    //   return (await response.json()).completion;
-
-    // case 'huggingface':
-    // 	response = await fetch(
-    // 		'https://api-inference.huggingface.co/models/YOUR_MODEL',
-    // 		{
-    // 			method: 'POST',
-    // 			headers: {
-    // 				Authorization: `Bearer ${token}`,
-    // 			},
-    // 			body: JSON.stringify({ inputs: inputPrompt }),
-    // 		},
-    // 	);
-    // 	return (await response.json())[0].generated_text;
-
+      return createOpenAI({
+        ...commonOpts,
+      })(model);
+    case "anthropic":
+      return createAnthropic({
+        ...commonOpts,
+      })(model);
+    case "azure":
+      return createAzure({
+        ...commonOpts,
+      })(model);
+    case "google":
+      return createGoogleGenerativeAI({
+        ...commonOpts,
+      })(model);
+    case "amazon-bedrock":
+      if (
+        !process.env.AWS_REGION ||
+        !process.env.AWS_ACCESS_KEY_ID ||
+        !process.env.AWS_SECRET_ACCESS_KEY
+      ) {
+        throw new Error(
+          "amazon-bedrock provider only supports providing credentials through enviroment varibles. Please provide all env varibles (AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN)"
+        );
+      }
+      return createAmazonBedrock()(model);
+    case "deepseek":
+      return createDeepSeek({
+        ...commonOpts,
+      })(model);
     default:
-      throw new Error("Unsupported llm provider");
+      throw new Error(`Unsupported llm provider: ${provider}`);
   }
+};
+
+/**
+ * @returns {Promise<FileSystem | null>}
+ */
+const getTemplateFromLLM = async (
+  provider,
+  model,
+  token,
+  inputPrompt,
+  baseUrl
+) => {
+  const { object } = await generateObject({
+    model: getLanguageModel(token, provider, model, baseUrl),
+    schema: FileSystemSchema,
+    system: `\
+      you are being used to generate code. Return a 1 dimension json 
+      array of objects in json format. Each object will have a "path" 
+      property holding a relative path to code you are generating files 
+      or directory which must start with "./",  a "type" property to determine 
+      if the object represents a "directory" or "file",  a "content" property for the 
+      content of the file but only on file objects. You only need to generate directory 
+      objects for directories that dont have corresponding child files/directories that are 
+      in the same array.`,
+    prompt: inputPrompt,
+  });
+
+  return object;
 };
 
 /**
@@ -188,4 +224,29 @@ const generateFileContent = async (dest, fileSystem, force = false) => {
       });
     }
   }
+};
+
+/**
+ * Default models for each provider
+ */
+const defaultModels = {
+  openai: "gpt-4o-mini",
+  anthropic: "claude-3-haiku-20240307",
+  azure: null,
+  google: "gemini-1.5-pro-latest",
+  "amazon-bedrock": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+  deepseek: "deepseek-chat",
+};
+
+const envMapping = {
+  openai: "OPENAI_API_KEY",
+  anthropic: "ANTHROPIC_API_KEY",
+  azure: "AZURE_API_KEY",
+  google: "GOOGLE_GENERATIVE_AI_API_KEY",
+  deepseek: "DEEPSEEK_API_KEY",
+};
+
+const getEnvVar = (provider) => {
+  const envVar = envMapping[provider];
+  return process.env[envVar] ?? null;
 };
