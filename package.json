@@ -1,22 +1,39 @@
 {
-  "name": "tps-ai",
-  "version": "1.0.2",
-  "description": "",
-  "main": "settings.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@ai-sdk/amazon-bedrock": "^1.1.6",
-    "@ai-sdk/anthropic": "^1.1.6",
-    "@ai-sdk/azure": "^1.1.9",
-    "@ai-sdk/deepseek": "^0.1.8",
-    "@ai-sdk/google": "^1.1.8",
-    "@ai-sdk/openai": "^1.1.9",
-    "ai": "^4.1.16",
-    "templates-mo": "^1.2.11",
-    "zod": "^3.23.8"
-  }
+	"name": "tps-ai",
+	"version": "1.0.2",
+	"description": "AI template for Templates",
+	"main": "settings.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"format": "prettier --write .",
+		"format:check": "prettier --check ."
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/marcellino-ornelas/tps-ai.git"
+	},
+	"author": "Marcellino Ornelas <marcellino.ornelas@gmail.com> (marcellino-ornelas.herokuapp.com)",
+	"bugs": {
+		"url": "https://github.com/marcellino-ornelas/tps-ai/issues",
+		"email": "marcellino.ornelas@gmail.com"
+	},
+	"engines": {
+		"node": ">=16.7.0"
+	},
+	"homepage": "https://marcellino-ornelas.github.io/templates/docs/main/templates/ai",
+	"license": "ISC",
+	"dependencies": {
+		"@ai-sdk/amazon-bedrock": "^1.1.6",
+		"@ai-sdk/anthropic": "^1.1.6",
+		"@ai-sdk/azure": "^1.1.9",
+		"@ai-sdk/deepseek": "^0.1.8",
+		"@ai-sdk/google": "^1.1.8",
+		"@ai-sdk/openai": "^1.1.9",
+		"ai": "^4.1.16",
+		"templates-mo": "^1.2.11",
+		"zod": "^3.23.8"
+	},
+	"devDependencies": {
+		"prettier": "^3.5.0"
+	}
 }
