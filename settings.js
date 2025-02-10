@@ -39,8 +39,7 @@ module.exports = {
 	prompts: [
 		{
 			name: 'build',
-			description:
-				'Description of what you want to instruct the llm to build',
+			description: 'Description of what you want to instruct the llm to build',
 			message: 'What would you like to build?',
 			tpsType: 'data',
 			type: 'input',
@@ -92,8 +91,7 @@ module.exports = {
 			description: 'Change the baseUrl for your AI provider',
 			tpsType: 'data',
 			type: 'input',
-			message:
-				'Would you like to change the baseUrl for your AI provider?',
+			message: 'Would you like to change the baseUrl for your AI provider?',
 		},
 	],
 	events: {
