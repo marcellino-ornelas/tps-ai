@@ -219,7 +219,7 @@ const generateFileContent = async (dest, fileSystem, force = false) => {
 			await fs.mkdir(filePath, { recursive: true });
 		} else {
 			await fs.mkdir(path.dirname(filePath), { recursive: true });
-			await fs.writeFile(filePath, fileOrDir.content, {
+			await fs.writeFile(filePath, fileOrDir.content || '', {
 				flag: force ? 'wx' : 'w',
 			});
 		}
