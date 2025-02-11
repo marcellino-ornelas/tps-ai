@@ -14,7 +14,7 @@ const FileSystemObjectSchema = z
 	.object({
 		path: z.string({
 			description:
-				"Relative path to the file or directoryn that starts with './'",
+				"Relative path to the file or directory that starts with './'",
 		}),
 		type: z.enum(['directory', 'file'], {
 			description: 'Type of file system object. either file or directory',
