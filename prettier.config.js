@@ -10,7 +10,7 @@ const config = {
 	printWidth: 80,
 	arrowParens: 'always',
 	bracketSpacing: true,
-	endOfLine: 'LF',
+	endOfLine: 'lf',
 };
 
 module.exports = config;
