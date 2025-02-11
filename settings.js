@@ -19,7 +19,7 @@ const FileSystemObjectSchema = z
 		type: z.enum(['directory', 'file'], {
 			description: 'Type of file system object. either file or directory',
 		}),
-		content: z.string({ description: 'File object contents' }),
+		content: z.string({ description: 'File object contents' }).optional(),
 	})
 	.required({
 		path: true,
