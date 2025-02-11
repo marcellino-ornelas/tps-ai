@@ -14,12 +14,12 @@ const FileSystemObjectSchema = z
 	.object({
 		path: z.string({
 			description:
-				"Relative path to the file or directoryn that starts with './'",
+				"Relative path to the file or directory that starts with './'",
 		}),
 		type: z.enum(['directory', 'file'], {
 			description: 'Type of file system object. either file or directory',
 		}),
-		content: z.string({ description: 'File object contents' }),
+		content: z.string({ description: 'File object contents' }).optional(),
 	})
 	.required({
 		path: true,
@@ -219,7 +219,7 @@ const generateFileContent = async (dest, fileSystem, force = false) => {
 			await fs.mkdir(filePath, { recursive: true });
 		} else {
 			await fs.mkdir(path.dirname(filePath), { recursive: true });
-			await fs.writeFile(filePath, fileOrDir.content, {
+			await fs.writeFile(filePath, fileOrDir.content || '', {
 				flag: force ? 'wx' : 'w',
 			});
 		}
