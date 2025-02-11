@@ -1,9 +1,8 @@
-name: Publish
+name: Publish Package to npmjs
 
 on:
-  push:
-    branches:
-      - main
+  release:
+    types: [created]
 
 jobs:
   release:
@@ -17,7 +16,7 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 18
-          registry-url: "https://registry.npmjs.org"
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: npm install
