@@ -1,6 +1,6 @@
 {
 	"name": "tps-ai",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"description": "AI template for Templates",
 	"main": "settings.js",
 	"scripts": {
