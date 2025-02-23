@@ -200,6 +200,10 @@ const getLanguageModel = ({ baseUrl, token, provider, model }) => {
 	}
 };
 
+/**
+ * Default instructions given to the AI in order
+ * to get file system like json blob back
+ */
 const FILE_SYSTEM_INSTRUCTIONS = `\
 you are being used to generate code. Return a 1 dimension json 
 array of objects in json format. Each object will have a "path" 
@@ -211,6 +215,8 @@ objects for directories that dont have corresponding child files/directories tha
 in the same array.`;
 
 /**
+ * Created additional AI instructions
+ *
  * @param {string[]} prompts
  * @returns {string}
  */
@@ -230,6 +236,8 @@ ${bulletPoints}
 };
 
 /**
+ * Get the files and folders that need to be created from the AI
+ *
  * @param {Answers} options
  * @returns {Promise<FileSystem | null>}
  */
