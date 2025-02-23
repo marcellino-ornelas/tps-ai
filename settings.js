@@ -214,6 +214,21 @@ content of the file but only on file objects. You only need to generate director
 objects for directories that dont have corresponding child files/directories that are 
 in the same array.`;
 
+const NAME_INSTRUCTIONS = `\
+This collections of files/folders will be used to create a instance. Instances have unique names. 
+Any location that requires a unique name, should use __TPS_NAME__. This will then be replaced with 
+the actual instance name before creating the content.
+
+Some examples of this are:
+- A repo name inside of package.json
+- The name of the App
+
+Things that shouldnt use this are:
+- function names
+- variables
+- apis
+`;
+
 /**
  * Created additional AI instructions
  *
