@@ -34,6 +34,16 @@ const FileSystemSchema = z.object({
 
 /** @typedef {z.infer<typeof FileSystemSchema>} FileSystem */
 
+/**
+ * @typedef {Object} Answers
+ * @property {string} build
+ * @property {string} provider
+ * @property {string} model
+ * @property {string} token
+ * @property {string} baseUrl
+ * @property {string[]} prompts
+ */
+
 /** @type {import('templates-mo/lib/types/settings').SettingsFile} */
 module.exports = {
 	prompts: [
@@ -93,8 +103,20 @@ module.exports = {
 			type: 'input',
 			message: 'Would you like to change the baseUrl for your AI provider?',
 		},
+		{
+			name: 'prompts',
+			hidden: true,
+			// Dont prompt to user
+			when: () => false,
+			description: 'Additional prompts/instructions to pass to the AI model',
+			tpsType: 'data',
+			default: [],
+		},
 	],
 	events: {
+		/**
+		 * @param {import('templates-mo')<Answers>} tps
+		 */
 		async onRender(tps, { buildPaths }) {
 			const answers = tps.getAnswers();
 
@@ -109,13 +131,7 @@ module.exports = {
 
 			console.log('Hold tight, AI is thinking...');
 
-			const fileSystem = await getTemplateFromLLM(
-				answers.provider,
-				answers.model,
-				answers.token,
-				answers.build,
-				answers.baseUrl
-			);
+			const fileSystem = await getTemplateFromLLM(answers);
 
 			if (!fileSystem) {
 				throw new Error('LLM didnt return a valid response');
@@ -138,7 +154,10 @@ module.exports = {
 	},
 };
 
-const getLanguageModel = (token, provider, model, baseUrl) => {
+/**
+ * @param {Answers} options
+ */
+const getLanguageModel = ({ baseUrl, token, provider, model }) => {
 	const commonOpts = {
 		baseURL: baseUrl,
 		apiKey: token,
@@ -182,28 +201,57 @@ const getLanguageModel = (token, provider, model, baseUrl) => {
 };
 
 /**
+ * Default instructions given to the AI in order
+ * to get file system like json blob back
+ */
+const FILE_SYSTEM_INSTRUCTIONS = `\
+you are being used to generate code. Return a 1 dimension json 
+array of objects in json format. Each object will have a "path" 
+property holding a relative path to code you are generating files 
+or directory which must start with "./",  a "type" property to determine 
+if the object represents a "directory" or "file",  a "content" property for the 
+content of the file but only on file objects. You only need to generate directory 
+objects for directories that dont have corresponding child files/directories that are 
+in the same array.`;
+
+/**
+ * Created additional AI instructions
+ *
+ * @param {string[]} prompts
+ * @returns {string}
+ */
+const createAdditionalPrompts = (prompts = []) => {
+	if (!prompts.length) return '';
+
+	const bulletPoints = prompts
+		.map((prompt, i) => {
+			return `${i + 1}.) ${prompt}`;
+		})
+		.join('\n');
+
+	return `\
+Follow these additional instructions:
+${bulletPoints}
+`;
+};
+
+/**
+ * Get the files and folders that need to be created from the AI
+ *
+ * @param {Answers} options
  * @returns {Promise<FileSystem | null>}
  */
-const getTemplateFromLLM = async (
-	provider,
-	model,
-	token,
-	inputPrompt,
-	baseUrl
-) => {
+const getTemplateFromLLM = async (options) => {
+	const system = [
+		FILE_SYSTEM_INSTRUCTIONS,
+		createAdditionalPrompts(options?.prompts ?? []),
+	].join('\n');
+
 	const { object } = await generateObject({
-		model: getLanguageModel(token, provider, model, baseUrl),
+		model: getLanguageModel(options),
 		schema: FileSystemSchema,
-		system: `\
-      you are being used to generate code. Return a 1 dimension json 
-      array of objects in json format. Each object will have a "path" 
-      property holding a relative path to code you are generating files 
-      or directory which must start with "./",  a "type" property to determine 
-      if the object represents a "directory" or "file",  a "content" property for the 
-      content of the file but only on file objects. You only need to generate directory 
-      objects for directories that dont have corresponding child files/directories that are 
-      in the same array.`,
-		prompt: inputPrompt,
+		system,
+		prompt: options.build,
 	});
 
 	return object;
