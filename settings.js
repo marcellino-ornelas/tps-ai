@@ -1,4 +1,4 @@
-// @ts-check9
+// @ts-check
 const z = require('zod');
 const fs = require('fs/promises');
 const path = require('path');
@@ -131,9 +131,7 @@ module.exports = {
 
 			console.log('Hold tight, AI is thinking...');
 
-			const usingBuildPaths = !!buildPaths.length && buildPaths[0] !== '.';
-
-			const fileSystem = await getTemplateFromLLM(answers, usingBuildPaths);
+			const fileSystem = await getTemplateFromLLM(answers);
 
 			if (!fileSystem) {
 				throw new Error('LLM didnt return a valid response');
@@ -213,10 +211,6 @@ objects for directories that dont have corresponding child files/directories tha
 in the same array.
 `;
 
-const BUILD_PATH_INSTRUCTIONS = `\
-
-`;
-
 /**
  * Created additional AI instructions
  *
@@ -244,7 +238,7 @@ ${bulletPoints}
  * @param {Answers} options
  * @returns {Promise<FileSystem | null>}
  */
-const getTemplateFromLLM = async (options, usingBuildPaths) => {
+const getTemplateFromLLM = async (options) => {
 	const system = [
 		FILE_SYSTEM_INSTRUCTIONS,
 		createAdditionalPrompts(options?.prompts ?? []),
