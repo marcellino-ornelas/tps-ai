@@ -213,6 +213,10 @@ objects for directories that dont have corresponding child files/directories tha
 in the same array.
 `;
 
+const BUILD_PATH_INSTRUCTIONS = `\
+
+`;
+
 /**
  * Created additional AI instructions
  *
