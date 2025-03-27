@@ -117,7 +117,7 @@ module.exports = {
 		/**
 		 * @param {import('templates-mo')<Answers>} tps
 		 */
-		async onRender(tps, { buildPaths }) {
+		async onRender(tps, { buildPaths, createFile, createDirectory }) {
 			const answers = tps.getAnswers();
 
 			// amazon-bedrock requires creds via env variables
@@ -137,19 +137,15 @@ module.exports = {
 				throw new Error('LLM didnt return a valid response');
 			}
 
+			fileSystem.fileContents.forEach((file) => {
+				if (file.type === 'file') {
+					createFile(file.path, file.content ?? '');
+				} else {
+					createDirectory(file.path);
+				}
+			});
+
 			console.log('Got it! Generating code...');
-
-			await Promise.all(
-				buildPaths.map((buildPath) => {
-					return generateFileContent(
-						buildPath,
-						fileSystem,
-						tps.opts.force || tps.opts.wipe
-					);
-				})
-			);
-
-			console.log('Done!');
 		},
 	},
 };
@@ -212,7 +208,8 @@ or directory which must start with "./",  a "type" property to determine
 if the object represents a "directory" or "file",  a "content" property for the 
 content of the file but only on file objects. You only need to generate directory 
 objects for directories that dont have corresponding child files/directories that are 
-in the same array.`;
+in the same array.
+`;
 
 /**
  * Created additional AI instructions
@@ -255,23 +252,6 @@ const getTemplateFromLLM = async (options) => {
 	});
 
 	return object;
-};
-
-/**
- * @param {FileSystem} fileSystem
- */
-const generateFileContent = async (dest, fileSystem, force = false) => {
-	for (const fileOrDir of fileSystem.fileContents) {
-		const filePath = path.join(dest, fileOrDir.path);
-		if (fileOrDir.type === 'directory') {
-			await fs.mkdir(filePath, { recursive: true });
-		} else {
-			await fs.mkdir(path.dirname(filePath), { recursive: true });
-			await fs.writeFile(filePath, fileOrDir.content || '', {
-				flag: force ? 'wx' : 'w',
-			});
-		}
-	}
 };
 
 /**
