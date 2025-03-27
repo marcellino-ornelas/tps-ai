@@ -117,7 +117,10 @@ module.exports = {
 		/**
 		 * @param {import('templates-mo')<Answers>} tps
 		 */
-		async onRender(tps, { buildPaths, createFile, createDirectory }) {
+		async onRender(
+			tps,
+			{ buildPaths, createFile, createDirectory, hasBuildPaths }
+		) {
 			const answers = tps.getAnswers();
 
 			// amazon-bedrock requires creds via env variables
@@ -131,7 +134,9 @@ module.exports = {
 
 			console.log('Hold tight, AI is thinking...');
 
-			const fileSystem = await getTemplateFromLLM(answers);
+			const fileSystem = await getTemplateFromLLM(answers, hasBuildPaths);
+
+			console.dir(fileSystem, { depth: 10000 });
 
 			if (!fileSystem) {
 				throw new Error('LLM didnt return a valid response');
@@ -212,6 +217,58 @@ in the same array.
 `;
 
 /**
+ * Instructions to the AI when instances are being generated with build paths
+ */
+const BUILD_PATH_INSTRUCTIONS = `\
+## Build Paths
+
+This process is using the files your create and generating one or more instances. The generated code does not need to be put into a folder.
+
+### Instance Name
+
+Each instance will have a unique 'name'. This 'name' has no strict structure and can be in PascalCase, 
+camelCase, kebabCase, snakeCase or any other cases. This 'name' represents the instance being created and should be used in places
+that require a name.
+
+Building examples:
+- if building a react component, 'tps.name' will be the name of the component
+- if building a app, 'tps.name' will be the name of the app and should be used in places that requires an app name
+
+This 'name' can be used in both file contents (contents) and file names (path). Directories types or directories paths in the 'path' cannot 
+use this 'name', only the actual file name. You can access this name with "{{= tps.name }}". This syntax will be replaced
+with the actual instance name when being created If this 'name' is being used in the file's contents (contents), 
+you must append a ".tps" file extension to the filename (path).
+
+File name examples using 'name' in the file contents:
+- 'file1.js.tps'
+- 'file2.md.tps'
+- '{{= tps.name }}.js.tps'
+
+File name examples when not using 'name' in the file contents:
+- 'file1.js'
+- 'file2.md'
+- '{{= tps.name }}.js'
+
+### Utilities
+
+The 'tps' object also has utilities that can be accessed by using "tps.utils[<functionName>]". 
+
+'<functionName>' will be the utility function (Ex: camelcase) from the following node libraries:
+- change-case@v4.1.2
+- inflection@v2.0.1
+
+We do not store the whole library on this data model:
+- Bad: '{{= tps.utils.changeCase.camelCase(tps.name) }}'
+- Good: '{{= tps.utils.camelCase(tps.name) }}'
+
+All functions are available besides:
+- titleCase (change-case)
+
+Example:
+- If you wanted to use 'camelCase' from change case on the instance 'name' you can use do that with '{{= tps.utils.changeCase(tps.name) }}'
+`;
+
+/**
  * Created additional AI instructions
  *
  * @param {string[]} prompts
@@ -238,9 +295,10 @@ ${bulletPoints}
  * @param {Answers} options
  * @returns {Promise<FileSystem | null>}
  */
-const getTemplateFromLLM = async (options) => {
+const getTemplateFromLLM = async (options, hasBuildPaths) => {
 	const system = [
 		FILE_SYSTEM_INSTRUCTIONS,
+		...(!hasBuildPaths ? [] : [BUILD_PATH_INSTRUCTIONS]),
 		createAdditionalPrompts(options?.prompts ?? []),
 	].join('\n');
 
